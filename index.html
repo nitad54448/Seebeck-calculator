@@ -3,48 +3,68 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script id="theme-init">
+(function () {
+  var preference;
+  try { preference = localStorage.getItem('seebeck-theme'); } catch (e) {}
+  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme = preference === 'light' || preference === 'dark'
+    ? preference : (dark ? 'dark' : 'light');
+})();
+</script>
 <title>Seebeck Calculator — thermoelectric voltage from a temperature gradient</title>
 <meta name="description" content="Calculator for the Seebeck effect: thermocouple / thermopile output voltage, temperature difference, Seebeck coefficient, output power and efficiency.">
 <style>
   :root{
-    color-scheme: light dark;
-    --bg:#f5f6f8; --card:#ffffff; --card2:#fafbfc; --ink:#141a22; --muted:#5c6673;
-    --line:#dfe3ea; --accent:#2f6fed; --accent-ink:#ffffff; --accent-soft:#eaf0ff;
+    color-scheme: light;
+    --bg:#f3f6f5; --card:#ffffff; --card2:#f6f9f8; --ink:#172e32; --muted:#607477;
+    --line:#dce6e3; --accent:#087e79; --accent-ink:#ffffff; --accent-soft:#e7f4f0;
     --hot:#d2452b; --cold:#2b7fd2; --bad:#c0392b;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     --shadow:0 1px 2px rgba(10,20,40,.06),0 8px 24px -18px rgba(10,20,40,.35);
   }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --bg:#0e1116; --card:#161b23; --card2:#1b2029; --ink:#e7edf4; --muted:#95a2b1;
-      --line:#28303c; --accent:#6ba6ff; --accent-ink:#0b1017; --accent-soft:#18223a;
+    :root[data-theme="dark"]{
+      color-scheme:dark;
+      --bg:#101c20; --card:#17282d; --card2:#1c3035; --ink:#e4efed; --muted:#a0b7b8;
+      --line:#30464b; --accent:#64d8bf; --accent-ink:#102722; --accent-soft:#203e3b;
       --hot:#ff8a6b; --cold:#74baff; --bad:#ff6b6b; --shadow:none;
     }
-  }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans)}
-  .wrap{max-width:1060px;margin:0 auto;padding:26px 18px 72px}
-  header.page{margin-bottom:20px}
-  header.page h1{margin:0 0 4px;font-size:27px;letter-spacing:-.02em}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 28px 72px}
+  header.page{margin-bottom:30px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:25px;margin-bottom:30px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:.02em}
+  .brand-mark{display:grid;place-items:center;width:32px;height:32px;background:var(--accent);color:var(--accent-ink);border-radius:10px;font:700 21px var(--mono)}
+  .theme-toggle{display:flex;align-items:center;gap:9px;font:600 12px var(--sans);padding:9px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);cursor:pointer}
+  .theme-toggle:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .theme-toggle svg{width:16px;height:16px;margin:0;fill:none;stroke:currentColor;stroke-width:1.7}
+  .moon-icon,:root[data-theme="dark"] .sun-icon{display:none}
+  :root[data-theme="dark"] .moon-icon{display:block}
+  .eyebrow{color:var(--accent);font-size:11px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;margin-bottom:9px}
+  header.page h1{margin:0 0 10px;font-size:clamp(30px,4vw,42px);line-height:1.2;letter-spacing:-.045em}
   header.page p{margin:0;color:var(--muted);max-width:68ch}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow)}
   .card > h2{margin:0 0 14px;font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
-  .layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+  .layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:start}
   @media (max-width:860px){.layout{grid-template-columns:1fr}}
-  .pad{padding:16px}
+  .pad{padding:25px}
+  .layout > aside{border-top:3px solid var(--accent);background:linear-gradient(155deg,var(--accent-soft),var(--card) 55%)}
+  .layout > aside .hero{color:var(--accent);font-size:clamp(34px,5vw,48px);padding-top:8px}
+  .layout > aside > svg{background:var(--card2);border:1px solid var(--line);border-radius:14px;margin-top:18px}
   .seg{display:flex;gap:5px;padding:5px;background:var(--accent-soft);border-radius:11px;margin-bottom:16px}
   .seg button{flex:1;border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;
     padding:9px 6px;border-radius:8px;cursor:pointer;white-space:nowrap}
   .seg button[aria-pressed="true"]{background:var(--card);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.16)}
   .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:13px}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 16px}
   .field > label,.field .lbl{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;
     text-transform:uppercase;color:var(--muted);margin-bottom:5px}
   .field .hint{font-size:11.5px;color:var(--muted);margin-top:5px;font-weight:400}
   input,select{width:100%;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);
-    border-radius:9px;padding:9px 10px}
+    border-radius:10px;padding:11px 12px}
   input[type=number]{font-family:var(--mono)}
   select{cursor:pointer}
   input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -74,13 +94,15 @@
   .hero .unit{font-size:.55em;font-weight:600;color:var(--muted);margin-left:2px}
   .sub{font-size:13px;color:var(--muted);margin-top:3px}
   .rows{margin-top:14px;border-top:1px solid var(--line)}
-  .row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .row{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
   .row b{font-family:var(--mono);font-weight:600;text-align:right}
   .err{color:var(--bad);font-weight:600}
   svg{width:100%;height:auto;display:block;margin-top:6px}
   svg text{font:600 11px var(--mono);fill:var(--muted)}
   table{width:100%;border-collapse:collapse;font-size:13.5px}
-  th,td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th,td{padding:12px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  thead{background:var(--card2)}
+  tbody tr:last-child td{border-bottom:0}
   th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
   td.num{font-family:var(--mono);white-space:nowrap;text-align:right}
   tr.pick{cursor:pointer}
@@ -91,12 +113,30 @@
   .hidden{display:none !important}
   footer.page{margin-top:22px;color:var(--muted);font-size:12.5px}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media (max-width:540px){
+    .wrap{padding:18px 14px 40px}.pad{padding:18px}.topbar{margin-bottom:24px;padding-bottom:18px}
+    .grid{grid-template-columns:1fr}.layout{gap:16px}.row{gap:10px}.row b{overflow-wrap:anywhere;min-width:0}
+    .seg button{font-size:13px}.brand{font-size:12px}header.page p{font-size:14px}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .btn,input,select,.theme-toggle{transition:background-color .18s,border-color .18s,box-shadow .18s}
+    input:focus-visible,select:focus-visible{box-shadow:0 0 0 4px var(--accent-soft)}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
 
 <header class="page">
+  <div class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">S</span>THERMOELECTRIC TOOLS</div>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false">
+      <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14A9 9 0 0 1 10 3.5 9 9 0 1 0 20.5 14Z"/></svg>
+      <span id="theme-label">Light</span>
+    </button>
+  </div>
+  <div class="eyebrow">Temperature in. Voltage out.</div>
   <h1>Seebeck Calculator</h1>
   <p>Turn a temperature difference into a voltage &mdash; or work backwards from a measured voltage.
      Covers single thermocouples, multi-couple thermopiles and Bi&#8322;Te&#8323; modules, with load power and
@@ -494,6 +534,31 @@ var SeebeckCore = (function () {
   'use strict';
   var C = SeebeckCore;
   function $(id) { return document.getElementById(id); }
+
+  var themeToggle = $('theme-toggle');
+  function syncTheme() {
+    var dark = document.documentElement.dataset.theme === 'dark';
+    themeToggle.setAttribute('aria-pressed', String(dark));
+    $('theme-label').textContent = dark ? 'Dark' : 'Light';
+  }
+  themeToggle.addEventListener('click', function () {
+    var theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem('seebeck-theme', theme); } catch (e) {}
+    syncTheme();
+  });
+  if (window.matchMedia) {
+    var themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+    if (themeMedia.addEventListener) themeMedia.addEventListener('change', function (event) {
+      try {
+        var saved = localStorage.getItem('seebeck-theme');
+        if (saved === 'light' || saved === 'dark') return;
+      } catch (e) {}
+      document.documentElement.dataset.theme = event.matches ? 'dark' : 'light';
+      syncTheme();
+    });
+  }
+  syncTheme();
 
   var DEFAULTS = {
     mode: 'voltage', seebeck: '41', seebeckUnit: 'uV/K', n: '1',

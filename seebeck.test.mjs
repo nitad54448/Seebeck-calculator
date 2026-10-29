@@ -42,12 +42,29 @@ ok('core exposes an API', !!C && typeof C.model === 'function');
 
 /* ---------- 2. syntax-check every script block ---------- */
 const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-eq('two script blocks found', scripts.length, 2);
+eq('three script blocks found', scripts.length, 3);
 scripts.forEach((src, i) => {
   let good = true, err = '';
   try { new vm.Script(src, { filename: 'inline-' + i + '.js' }); } catch (e) { good = false; err = e.message; }
   ok('script block ' + (i + 1) + ' parses', good, err);
 });
+
+/* Theme initializes before painting and tolerates unavailable storage. */
+function initialTheme(saved, systemDark, storageBlocked = false) {
+  const document = { documentElement: { dataset: {} } };
+  vm.runInNewContext(scripts[0], {
+    document,
+    window: { matchMedia: () => ({ matches: systemDark }) },
+    localStorage: { getItem() { if (storageBlocked) throw new Error('blocked'); return saved; } }
+  });
+  return document.documentElement.dataset.theme;
+}
+eq('theme follows light system', initialTheme(null, false), 'light');
+eq('theme follows dark system', initialTheme(null, true), 'dark');
+eq('saved light overrides dark system', initialTheme('light', true), 'light');
+eq('saved dark overrides light system', initialTheme('dark', false), 'dark');
+eq('invalid theme falls back to system', initialTheme('invalid', true), 'dark');
+eq('blocked storage falls back to system', initialTheme(null, true, true), 'dark');
 
 /* ---------- 3. temperature conversions ---------- */
 near('0 C -> 273.15 K', C.toKelvin(0, 'C'), 273.15);
@@ -260,6 +277,7 @@ for (const m of html.matchAll(/<tr class="pick" data-s="([^"]+)"/g)) dom.rows.pu
 
 const location = { href: 'file:///C:/seebeck/index.html', hash: '', pathname: '/C:/seebeck/index.html', search: '' };
 const document = {
+  documentElement: { dataset: {} },
   getElementById: id => dom.els.get(id),
   querySelectorAll: sel => (sel === '#ref-table tbody tr' ? dom.rows : []),
   createElement: tag => new El(tag),
@@ -281,11 +299,10 @@ const appended = [];
 document.body.appendChild = el => { appended.push(el); };
 document.body.removeChild = () => {};
 
-/* run both scripts in one context, exactly like the browser does */
+/* run all scripts in one context, exactly like the browser does */
 let uiError = null;
 try {
-  vm.runInContext(coreMatch[1], uiCtx);
-  vm.runInContext(scripts[1], uiCtx);
+  scripts.forEach(src => vm.runInContext(src, uiCtx));
 } catch (e) { uiError = e; }
 ok('UI script runs without throwing', uiError === null,
   uiError && (uiError.message + ' / ' + String(uiError.stack || '').split('\n')[1]));
@@ -293,6 +310,14 @@ ok('UI script runs without throwing', uiError === null,
 const E = id => dom.els.get(id);
 const txt = id => String(E(id).textContent);
 const vis = id => !E(id).parent.classes.has('hidden');
+
+eq('theme starts light', txt('theme-label'), 'Light');
+E('theme-toggle').dispatch('click');
+eq('theme button enables dark mode', document.documentElement.dataset.theme, 'dark');
+eq('theme button exposes dark state', E('theme-toggle').getAttribute('aria-pressed'), 'true');
+eq('theme label updates', txt('theme-label'), 'Dark');
+E('theme-toggle').dispatch('click');
+eq('theme button returns to light', document.documentElement.dataset.theme, 'light');
 
 /* default scenario: type K couple, 100 C vs 25 C */
 ok('hero shows 3.075 mV', /3\.075/.test(E('hero').innerHTML) && /mV/.test(E('hero').innerHTML), E('hero').innerHTML);
