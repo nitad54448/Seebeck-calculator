@@ -55,9 +55,16 @@
   .pair .tag{font:600 11px var(--mono);padding:4px 7px;border-radius:999px;white-space:nowrap}
   .tag.hot{background:color-mix(in srgb,var(--hot) 16%,transparent);color:var(--hot)}
   .tag.cold{background:color-mix(in srgb,var(--cold) 16%,transparent);color:var(--cold)}
-  details.adv{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
-  details.adv > summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--accent);list-style-position:outside}
-  details.adv[open] > summary{margin-bottom:12px}
+  details.adv{margin-top:16px;border-top:1px solid var(--line);padding-top:8px}
+  details.adv > summary{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    list-style:none;cursor:pointer;font-weight:700;font-size:13px;color:var(--accent);padding:6px 0}
+  details.adv > summary::-webkit-details-marker{display:none}
+  details.adv > summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+  details.adv > summary::after{content:"";flex:0 0 auto;width:8px;height:8px;margin-right:1px;
+    border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+    transform:rotate(45deg);transition:transform .16s ease}
+  details.adv[open] > summary::after{transform:rotate(-135deg)}
+  details.adv[open] > summary{margin-bottom:10px}
   .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
   .btn{font:inherit;font-weight:600;color:var(--ink);background:var(--card2);border:1px solid var(--line);
     border-radius:9px;padding:9px 14px;cursor:pointer}
@@ -416,6 +423,8 @@ var SeebeckCore = (function () {
       vCouple = S * dT;
       vTotal = n * vCouple;
     }
+    r.vCouple = vCouple; r.vTotal = vTotal;
+
     /* --- circuit: I = V/(Rint+Rload), Pload = I^2 Rload, Pmax = V^2/(4Rint) - */
     var rint = parseNum(input.rint), rload = parseNum(input.rload);
     var zt = parseNum(input.zt);
