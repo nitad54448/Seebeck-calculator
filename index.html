@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seebeck Calculator — thermoelectric voltage from a temperature gradient</title>
+<meta name="description" content="Calculator for the Seebeck effect: thermocouple / thermopile output voltage, temperature difference, Seebeck coefficient, output power and efficiency.">
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#f5f6f8; --card:#ffffff; --card2:#fafbfc; --ink:#141a22; --muted:#5c6673;
+    --line:#dfe3ea; --accent:#2f6fed; --accent-ink:#ffffff; --accent-soft:#eaf0ff;
+    --hot:#d2452b; --cold:#2b7fd2; --bad:#c0392b;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(10,20,40,.06),0 8px 24px -18px rgba(10,20,40,.35);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0e1116; --card:#161b23; --card2:#1b2029; --ink:#e7edf4; --muted:#95a2b1;
+      --line:#28303c; --accent:#6ba6ff; --accent-ink:#0b1017; --accent-soft:#18223a;
+      --hot:#ff8a6b; --cold:#74baff; --bad:#ff6b6b; --shadow:none;
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans)}
+  .wrap{max-width:1060px;margin:0 auto;padding:26px 18px 72px}
+  header.page{margin-bottom:20px}
+  header.page h1{margin:0 0 4px;font-size:27px;letter-spacing:-.02em}
+  header.page p{margin:0;color:var(--muted);max-width:68ch}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .card > h2{margin:0 0 14px;font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+  @media (max-width:860px){.layout{grid-template-columns:1fr}}
+  .pad{padding:16px}
+  .seg{display:flex;gap:5px;padding:5px;background:var(--accent-soft);border-radius:11px;margin-bottom:16px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;
+    padding:9px 6px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .seg button[aria-pressed="true"]{background:var(--card);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.16)}
+  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:13px}
+  .field > label,.field .lbl{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .field .hint{font-size:11.5px;color:var(--muted);margin-top:5px;font-weight:400}
+  input,select{width:100%;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);
+    border-radius:9px;padding:9px 10px}
+  input[type=number]{font-family:var(--mono)}
+  select{cursor:pointer}
+  input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .duo{display:flex;gap:8px}
+  .duo input{flex:1;min-width:0}
+  .duo select{width:auto;flex:0 0 auto;max-width:45%}
+  .pair{display:flex;gap:8px;align-items:center;margin-top:4px}
+  .pair .tag{font:600 11px var(--mono);padding:4px 7px;border-radius:999px;white-space:nowrap}
+  .tag.hot{background:color-mix(in srgb,var(--hot) 16%,transparent);color:var(--hot)}
+  .tag.cold{background:color-mix(in srgb,var(--cold) 16%,transparent);color:var(--cold)}
+  details.adv{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+  details.adv > summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--accent);list-style-position:outside}
+  details.adv[open] > summary{margin-bottom:12px}
+  .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+  .btn{font:inherit;font-weight:600;color:var(--ink);background:var(--card2);border:1px solid var(--line);
+    border-radius:9px;padding:9px 14px;cursor:pointer}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+  .hero{font:600 clamp(26px,6vw,34px)/1.15 var(--mono);letter-spacing:-.02em;word-break:break-word}
+  .hero .unit{font-size:.55em;font-weight:600;color:var(--muted);margin-left:2px}
+  .sub{font-size:13px;color:var(--muted);margin-top:3px}
+  .rows{margin-top:14px;border-top:1px solid var(--line)}
+  .row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .row b{font-family:var(--mono);font-weight:600;text-align:right}
+  .err{color:var(--bad);font-weight:600}
+  svg{width:100%;height:auto;display:block;margin-top:6px}
+  svg text{font:600 11px var(--mono);fill:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  td.num{font-family:var(--mono);white-space:nowrap;text-align:right}
+  tr.pick{cursor:pointer}
+  tr.pick:hover td{background:var(--accent-soft)}
+  code{font-family:var(--mono);background:var(--accent-soft);padding:1px 5px;border-radius:5px;font-size:.92em}
+  .notes ul{margin:8px 0 0;padding-left:20px}
+  .notes li{margin:5px 0}
+  .hidden{display:none !important}
+  footer.page{margin-top:22px;color:var(--muted);font-size:12.5px}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <h1>Seebeck Calculator</h1>
+  <p>Turn a temperature difference into a voltage &mdash; or work backwards from a measured voltage.
+     Covers single thermocouples, multi-couple thermopiles and Bi&#8322;Te&#8323; modules, with load power and
+     thermoelectric conversion efficiency.</p>
+</header>
+
+<div class="layout">
+  <!-- ============================ INPUTS ============================ -->
+  <section class="card pad" aria-labelledby="inputs-h">
+    <h2 id="inputs-h">Inputs</h2>
+
+    <div class="seg" role="group" aria-label="Choose which quantity to solve for">
+      <button type="button" id="m-voltage" data-mode="voltage" aria-pressed="true">Voltage</button>
+      <button type="button" id="m-dT"      data-mode="dT"      aria-pressed="false">&Delta;T</button>
+      <button type="button" id="m-S"       data-mode="S"       aria-pressed="false">Coefficient</button>
+    </div>
+
+    <div class="field" style="margin-bottom:13px">
+      <label for="preset">Preset material / pair</label>
+      <select id="preset">
+        <option value="">Custom&hellip;</option>
+        <optgroup label="Thermocouple pairs (whole couple)">
+          <option value="68">Type E &mdash; Chromel / Constantan (&asymp;68 &micro;V/K)</option>
+          <option value="52">Type J &mdash; Iron / Constantan (&asymp;52 &micro;V/K)</option>
+          <option value="43">Type T &mdash; Copper / Constantan (&asymp;43 &micro;V/K)</option>
+          <option value="41">Type K &mdash; Chromel / Alumel (&asymp;41 &micro;V/K)</option>
+          <option value="33">Type N &mdash; Nicrosil / Nisil (&asymp;33 &micro;V/K)</option>
+          <option value="6.5">Type S &mdash; Platinum / Pt-Rh10% (&asymp;6.5 &micro;V/K)</option>
+          <option value="15">Type B &mdash; Pt-Rh30% / Pt-Rh6% (&asymp;15 &micro;V/K near 1000 &deg;C)</option>
+        </optgroup>
+        <optgroup label="Thermoelectric materials (one leg)">
+          <option value="-215">n-type Bi&#8322;Te&#8323; (&minus;215 &micro;V/K at 300 K)</option>
+          <option value="215">p-type Bi&#8322;Te&#8323; (+215 &micro;V/K at 300 K)</option>
+          <option value="-230">n-type PbTe (&minus;230 &micro;V/K)</option>
+          <option value="-200">n-type Mg&#8322;Si (&minus;200 &micro;V/K)</option>
+          <option value="200">p-type SiGe (+200 &micro;V/K, 300&ndash;900 K)</option>
+          <option value="120">p-type skutterudite CoSb&#8323; (+120 &micro;V/K)</option>
+          <option value="-43">Constantan vs. copper (&minus;43 &micro;V/K)</option>
+          <option value="-20">PEDOT:PSS polymer (&minus;20 &micro;V/K)</option>
+        </optgroup>
+        <optgroup label="Thermoelectric couples (p + n legs in series)">
+          <option value="420">Bi&#8322;Te&#8323; couple, p&ndash;n (&asymp;420 &micro;V/K)</option>
+          <option value="400">SiGe couple, p&ndash;n (&asymp;400 &micro;V/K)</option>
+        </optgroup>
+      </select>
+      <p class="hint">Preset values fill the coefficient field below &mdash; edit freely.</p>
+    </div>
+
+    <div class="grid">
+      <div class="field" id="f-S">
+        <label for="seebeck">Seebeck coeff. S</label>
+        <div class="duo">
+          <input id="seebeck" type="number" step="any" value="41" aria-describedby="S-hint">
+          <select id="seebeck-unit" aria-label="Seebeck coefficient unit">
+            <option value="uV/K" selected>&micro;V/K</option>
+            <option value="mV/K">mV/K</option>
+            <option value="V/K">V/K</option>
+          </select>
+        </div>
+        <p class="hint" id="S-hint">Signed. Positive &rarr; p-type dominant.</p>
+      </div>
+
+      <div class="field" id="f-n">
+        <label for="couples">Couples in series (N)</label>
+        <input id="couples" type="number" min="1" step="1" value="1">
+        <p class="hint">N = 1 single thermocouple; N &gt; 1 thermopile / module.</p>
+      </div>
+      <div class="field" id="f-th">
+        <label for="thot">Hot side &nbsp;T<sub>h</sub></label>
+        <input id="thot" type="number" step="any" value="100">
+        <p class="pair"><span class="tag hot" id="tag-th">&mdash;</span></p>
+      </div>
+
+      <div class="field" id="f-tc">
+        <label for="tcold">Cold / reference &nbsp;T<sub>c</sub></label>
+        <input id="tcold" type="number" step="any" value="25">
+        <p class="pair"><span class="tag cold" id="tag-tc">&mdash;</span></p>
+      </div>
+
+      <div class="field" id="f-unit">
+        <label for="tunit">Temperature unit</label>
+        <select id="tunit">
+          <option value="C" selected>&deg;C</option>
+          <option value="K">K</option>
+          <option value="F">&deg;F</option>
+        </select>
+        <p class="hint">Applies to both temperature fields.</p>
+      </div>
+
+      <div class="field hidden" id="f-vmeas">
+        <label for="measured">Measured voltage</label>
+        <div class="duo">
+          <input id="measured" type="number" step="any" value="4.095">
+          <select id="measured-unit" aria-label="Measured voltage unit">
+            <option value="nV">nV</option>
+            <option value="uV">&micro;V</option>
+            <option value="mV" selected>mV</option>
+            <option value="V">V</option>
+          </select>
+        </div>
+        <p class="hint">Measured across the whole device (all N couples).</p>
+      </div>
+    </div>
+
+    <details class="adv" id="adv">
+      <summary>Power &amp; efficiency (optional)</summary>
+      <div class="grid">
+        <div class="field">
+          <label for="rint">Internal resistance R<sub>int</sub> (&Omega;)</label>
+          <input id="rint" type="number" min="0" step="any" value="1">
+          <p class="hint">DC resistance of legs + leads. Blank / 0 hides power results.</p>
+        </div>
+        <div class="field">
+          <label for="rload">Load resistance R<sub>load</sub> (&Omega;)</label>
+          <input id="rload" type="number" min="0" step="any" value="1">
+          <p class="hint">Set equal to R<sub>int</sub> for maximum power transfer.</p>
+        </div>
+        <div class="field">
+          <label for="zt">Figure of merit ZT</label>
+          <input id="zt" type="number" min="0" step="any" value="1">
+          <p class="hint">&macr;ZT at the mean temperature: &asymp;0.8&ndash;1.1 for cheap modules, 1.5&ndash;3 for good ones.</p>
+        </div>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button class="btn primary" type="button" id="copy">Copy results</button>
+      <button class="btn" type="button" id="link">Copy link</button>
+      <button class="btn" type="button" id="reset">Reset</button>
+      <span id="status" role="status" aria-live="polite" class="sub" style="align-self:center"></span>
+    </div>
+  </section>
+  <!-- ============================ RESULTS ============================ -->
+  <aside class="card pad" aria-labelledby="out-h">
+    <h2 id="out-h">Result</h2>
+    <div class="hero" id="hero">&mdash;</div>
+    <p class="sub" id="hero-sub">Select a mode and enter values.</p>
+
+    <div class="rows">
+      <div class="row"><span>Temperature difference &Delta;T</span><b id="o-dt">&mdash;</b></div>
+      <div class="row"><span>Per couple (S&middot;&Delta;T)</span><b id="o-one">&mdash;</b></div>
+      <div class="row"><span id="o-total-lbl">Total EMF (N couples)</span><b id="o-total">&mdash;</b></div>
+      <div class="row"><span>Polarity at hot side</span><b id="o-pol">&mdash;</b></div>
+      <div class="row"><span>Seebeck coefficient S</span><b id="o-s">&mdash;</b></div>
+      <div class="row" id="r-i"><span>Short-circuit / load current</span><b id="o-i">&mdash;</b></div>
+      <div class="row" id="r-p"><span>Power into load</span><b id="o-p">&mdash;</b></div>
+      <div class="row" id="r-pm"><span>Max power (R<sub>load</sub>=R<sub>int</sub>)</span><b id="o-pm">&mdash;</b></div>
+      <div class="row" id="r-car"><span>Carnot limit</span><b id="o-car">&mdash;</b></div>
+      <div class="row" id="r-eff"><span>TE conversion efficiency</span><b id="o-eff">&mdash;</b></div>
+    </div>
+
+    <div id="msg" class="sub" style="margin-top:10px"></div>
+
+    <svg viewBox="0 0 320 156" role="img" aria-label="Thermocouple loop diagram">
+      <path d="M160,32 C124,44 92,64 92,98 L92,112 Q92,122 102,122 L146,122" fill="none" stroke="var(--hot)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M160,32 C196,44 228,64 228,98 L228,112 Q228,122 218,122 L174,122" fill="none" stroke="var(--cold)" stroke-width="3" stroke-linecap="round"/>
+      <rect x="146" y="108" width="28" height="26" rx="6" fill="var(--card2)" stroke="var(--line)" stroke-width="1.5"/>
+      <text x="160" y="125" text-anchor="middle" style="fill:var(--ink);font-size:12px">V</text>
+      <circle cx="160" cy="32" r="5.5" fill="var(--hot)"/>
+      <text x="160" y="17" text-anchor="middle" id="g-th">T&#8202;h</text>
+      <text x="160" y="46" text-anchor="middle" id="g-dt">&Delta;T</text>
+      <text x="66" y="70" text-anchor="end" id="g-a">leg A</text>
+      <text x="254" y="70" text-anchor="start" id="g-b">leg B</text>
+      <text x="102" y="140" text-anchor="middle" id="g-tc">T&#8202;c</text>
+      <text x="218" y="140" text-anchor="middle" id="g-tc2">T&#8202;c</text>
+    </svg>
+  </aside>
+</div>
+<!-- ==================== REFERENCE ==================== -->
+<section class="card pad" style="margin-top:16px" aria-labelledby="ref-h">
+  <h2 id="ref-h">Typical Seebeck coefficients <span style="text-transform:none;letter-spacing:0;font-weight:400">&mdash; click a row to use it</span></h2>
+  <div style="overflow-x:auto">
+    <table id="ref-table">
+      <thead>
+        <tr><th>Material / pair</th><th style="text-align:right">S (&micro;V/K)</th><th>Basis</th><th>Where you meet it</th></tr>
+      </thead>
+      <tbody>
+        <tr class="pick" data-s="68"><td>Type E &mdash; Chromel / Constantan</td><td class="num">+68</td><td>whole couple</td><td>Highest-output common base-metal thermocouple</td></tr>
+        <tr class="pick" data-s="52"><td>Type J &mdash; Iron / Constantan</td><td class="num">+52</td><td>whole couple</td><td>Furnaces, older industrial PLCs</td></tr>
+        <tr class="pick" data-s="43"><td>Type T &mdash; Copper / Constantan</td><td class="num">+43</td><td>whole couple</td><td>Cryogenic &amp; low temperature, food and laboratory</td></tr>
+        <tr class="pick" data-s="41"><td>Type K &mdash; Chromel / Alumel</td><td class="num">+41</td><td>whole couple</td><td>The workhorse: ovens, engines, kilns, 3D printers</td></tr>
+        <tr class="pick" data-s="33"><td>Type N &mdash; Nicrosil / Nisil</td><td class="num">+33</td><td>whole couple</td><td>High temperature, lower drift than type K</td></tr>
+        <tr class="pick" data-s="6.5"><td>Type S &mdash; Pt / Pt-Rh10%</td><td class="num">+6.5</td><td>whole couple</td><td>Precious metal, up to ~1600 &deg;C, calibration labs</td></tr>
+        <tr class="pick" data-s="15"><td>Type B &mdash; Pt-Rh30% / Pt-Rh6%</td><td class="num">+15</td><td>couple, ~1000 &deg;C</td><td>Very high temperature; near-zero output at 0 &deg;C</td></tr>
+        <tr class="pick" data-s="-215"><td>n-type Bi&#8322;Te&#8323; leg</td><td class="num">&minus;215</td><td>one leg, 300 K</td><td>Peltier coolers &amp; near-room-temperature generators</td></tr>
+        <tr class="pick" data-s="215"><td>p-type Bi&#8322;Te&#8323; leg</td><td class="num">+215</td><td>one leg, 300 K</td><td>Peltier coolers &amp; near-room-temperature generators</td></tr>
+        <tr class="pick" data-s="420"><td>Bi&#8322;Te&#8323; p&ndash;n couple</td><td class="num">+420</td><td>couple (2 legs)</td><td>One couple of a TEC / TEG module</td></tr>
+        <tr class="pick" data-s="-230"><td>n-type PbTe leg</td><td class="num">&minus;230</td><td>one leg, ~600 K</td><td>Mid-temperature waste-heat recovery</td></tr>
+        <tr class="pick" data-s="200"><td>p-type SiGe leg</td><td class="num">+200</td><td>one leg, 300&ndash;900 K</td><td>Space RTGs, high-temperature staged modules</td></tr>
+        <tr class="pick" data-s="-43"><td>Constantan vs. copper</td><td class="num">&minus;43</td><td>relative to Cu</td><td>Strain gauges, thermal shunts</td></tr>
+        <tr class="pick" data-s="-20"><td>PEDOT:PSS (polymer)</td><td class="num">&minus;20</td><td>one leg, 300 K</td><td>Flexible and wearable energy harvesting</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="hint" style="color:var(--muted);font-size:12.5px">Indicative values only. The Seebeck coefficient is strongly
+  temperature dependent (and composition dependent after doping or annealing), so treat these as starting points &mdash; use the
+  manufacturer datasheet, or NIST / ITS-90 polynomial tables for anything you must calibrate against.</p>
+</section>
+<!-- ==================== NOTES ==================== -->
+<section class="card pad notes" style="margin-top:16px" aria-labelledby="note-h">
+  <h2 id="note-h">How it is calculated</h2>
+  <ul>
+    <li><b>Output voltage.</b> <code>V = N &middot; S &middot; (T&#8202;h &minus; T&#8202;c)</code>. The exact relation is the integral
+      <code>V = N &int;<sub>T&#8202;c</sub><sup>T&#8202;h</sup> S(T) dT</code>; this page assumes S is constant across the range, so use the
+      value quoted at the <i>mean</i> temperature when the gradient is large.</li>
+    <li><b>Sign convention.</b> The result is the potential of the hot-side terminal with respect to the cold-side return.
+      Positive S (p-type) makes the hot side positive, negative S (n-type) makes it negative. Swapping the two wires flips the sign,
+      and reversing the gradient flips it too &mdash; both are reflected in the result.</li>
+    <li><b>Thermopiles.</b> N identical couples in series add their EMFs, and so do their resistances &mdash; hence <code>R&#8202;int</code>
+      should be the measured DC resistance of the whole device, not of a single leg.</li>
+    <li><b>Electrical power.</b> <code>I = V / (R&#8202;int + R&#8202;load)</code>, <code>P&#8202;load = I&sup2; &middot; R&#8202;load</code>,
+      and the matched-load maximum <code>P&#8202;max = V&sup2; / (4 &middot; R&#8202;int)</code>.</li>
+    <li><b>Efficiency.</b> <code>&eta; = &eta;<sub>Carnot</sub> &middot; (&radic;(1+ZT&#772;) &minus; 1) / (&radic;(1+ZT&#772;) &minus; T&#8202;c/T&#8202;h)</code>,
+      with <code>ZT&#772;</code> evaluated at <code>(T&#8202;h + T&#8202;c)/2</code>. This is the ideal single-pair result: it ignores contact
+      resistance and thermal shorting, so real modules land noticeably below it.</li>
+    <li><b>Cold-junction compensation.</b> A thermocouple only senses a <i>difference</i>. To read an absolute temperature you must know
+      T&#8202;c (the terminal block or interface-IC temperature) and add it: <code>T&#8202;measured = T&#8202;c + V / (N &middot; S)</code>,
+      which is exactly what the <b>&Delta;T</b> mode reports.</li>
+    <li><b>Open circuit vs. loaded.</b> The EMF computed is the open-circuit voltage. Drawing current pulls the terminal voltage down by
+      <code>I &middot; R&#8202;int</code> and simultaneously pumps heat back with the Peltier effect, which is why a generator's best
+      operating point is a compromise between voltage and power.</li>
+  </ul>
+</section>
+
+<footer class="page">
+  One file, no dependencies, no network calls &mdash; everything computes locally in your browser.
+  The inputs live in the URL fragment, so <em>Copy link</em> shares the exact scenario.
+</footer>
+</div>
+<script id="seebeck-core">
+/* ===========================================================================
+   Pure calculation core for the Seebeck calculator.
+   No DOM access in this block, so it can be extracted and unit-tested as-is.
+   =========================================================================== */
+var SeebeckCore = (function () {
+  'use strict';
+
+  var K0 = 273.15;                                       // 0 degC, in kelvin
+  var SEEBECK_UNIT = { 'uV/K': 1e-6, 'mV/K': 1e-3, 'V/K': 1 };
+  var VOLT_UNIT    = { 'nV': 1e-9, 'uV': 1e-6, 'mV': 1e-3, 'V': 1 };
+
+  /* ---- temperature helpers ---- */
+  function toKelvin(v, unit) {
+    if (unit === 'K') return v;
+    if (unit === 'C') return v + K0;
+    return (v - 32) * 5 / 9 + K0;                         // degF
+  }
+  function fromKelvin(k, unit) {
+    if (unit === 'K') return k;
+    if (unit === 'C') return k - K0;
+    return (k - K0) * 9 / 5 + 32;                         // degF
+  }
+  /* One step of 1 K = one step of 1 degC, but 1.8 degF. */
+  function deltaToUnit(dk, unit) { return unit === 'F' ? dk * 9 / 5 : dk; }
+
+  function parseNum(raw) {
+    if (typeof raw === 'number') return isFinite(raw) ? raw : NaN;
+    if (raw === null || raw === undefined) return NaN;
+    var s = String(raw).trim().replace(/,/g, '.');
+    if (s === '') return NaN;
+    var n = Number(s);
+    return isFinite(n) ? n : NaN;
+  }
+
+  /* ---- model ---------------------------------------------------------------
+     input = { mode: 'voltage' | 'dT' | 'S', seebeck, seebeckUnit, n,
+               th, tc, unit, measured, measuredUnit, rint, rload, zt }
+     Returns SI: volts, kelvin, watts, dimensionless. NaN where not derivable.
+     -------------------------------------------------------------------------- */
+  function model(input) {
+    var mode = input.mode || 'voltage';
+    var unit = input.unit || 'C';
+    var r = { mode: mode, unit: unit, errors: [], ok: false };
+    var problems = [];
+
+    /* N: couples in series, positive integer */
+    var nRaw = parseNum(input.n);
+    var n = isFinite(nRaw) ? Math.max(1, Math.round(nRaw)) : NaN;
+    if (isFinite(nRaw) && nRaw < 1) problems.push('Number of couples must be 1 or more.');
+    r.n = n;
+
+    var sFactor = SEEBECK_UNIT[input.seebeckUnit] || SEEBECK_UNIT['uV/K'];
+    var sGiven = parseNum(input.seebeck);
+    var sInput = isFinite(sGiven) ? sGiven * sFactor : NaN;      // V/K
+
+    var vFactor = VOLT_UNIT[input.measuredUnit] || VOLT_UNIT['mV'];
+    var vGiven = parseNum(input.measured);
+    var vMeasured = isFinite(vGiven) ? vGiven * vFactor : NaN;   // V
+
+    var needTh = mode !== 'dT';
+    var needS  = mode !== 'S';
+    var needV  = mode !== 'voltage';
+
+    var thRaw = parseNum(input.th), tcRaw = parseNum(input.tc);
+    var thK = (needTh && isFinite(thRaw)) ? toKelvin(thRaw, unit) : NaN;
+    var tcK = isFinite(tcRaw) ? toKelvin(tcRaw, unit) : NaN;
+
+    if (needTh && !isFinite(thK))   problems.push('Enter the hot-side temperature.');
+    if (!isFinite(tcK))             problems.push('Enter the cold / reference temperature.');
+    if (needS && !isFinite(sInput)) problems.push('Enter a Seebeck coefficient.');
+    if (needV && !isFinite(vMeasured)) problems.push('Enter the measured voltage.');
+    if (isFinite(thK) && thK < 0)   problems.push('Hot temperature is below absolute zero.');
+    if (isFinite(tcK) && tcK < 0)   problems.push('Cold temperature is below absolute zero.');
+
+    /* --- solve the triangle  V = N * S * dT --------------------------------- */
+    var dT = NaN, S = sInput;
+    if (mode === 'voltage') {
+      if (isFinite(thK) && isFinite(tcK)) dT = thK - tcK;
+    } else if (mode === 'dT') {
+      if (isFinite(vMeasured) && isFinite(S) && isFinite(n) && n * S !== 0) {
+        dT = vMeasured / (n * S);
+        if (isFinite(tcK)) thK = tcK + dT;                 // hot side is implied
+      } else problems.push('S and N must both be non-zero to invert for dT.');
+    } else {                                                 /* mode === 'S' */
+      if (isFinite(thK) && isFinite(tcK)) dT = thK - tcK;
+      if (isFinite(vMeasured) && isFinite(dT) && isFinite(n) && n * dT !== 0) {
+        S = vMeasured / (n * dT);
+      } else problems.push('A non-zero dT and N are needed to solve for S.');
+    }
+    r.dT = dT; r.S = S; r.ThK = thK; r.TcK = tcK;
+
+    var vCouple = NaN, vTotal = NaN;
+    if (isFinite(S) && isFinite(dT) && isFinite(n)) {
+      vCouple = S * dT;
+      vTotal = n * vCouple;
+    }
+    /* --- circuit: I = V/(Rint+Rload), Pload = I^2 Rload, Pmax = V^2/(4Rint) - */
+    var rint = parseNum(input.rint), rload = parseNum(input.rload);
+    var zt = parseNum(input.zt);
+    r.rint = rint; r.rload = rload; r.zt = zt;
+    r.current = (isFinite(vTotal) && isFinite(rint) && isFinite(rload) && rint + rload > 0)
+      ? vTotal / (rint + rload) : NaN;
+    r.pLoad = (isFinite(r.current) && rload >= 0) ? r.current * r.current * rload : NaN;
+    r.pMax = (isFinite(vTotal) && isFinite(rint) && rint > 0)
+      ? vTotal * vTotal / (4 * rint) : NaN;
+    r.vTerminal = (isFinite(r.current) && isFinite(rint)) ? vTotal - r.current * rint : NaN;
+
+    /* --- efficiency: eta = eta_C * (sqrt(1+ZT) - 1) / (sqrt(1+ZT) - Tc/Th) -- */
+    var hotK = (isFinite(thK) && isFinite(tcK)) ? Math.max(thK, tcK) : NaN;
+    var coldK = (isFinite(thK) && isFinite(tcK)) ? Math.min(thK, tcK) : NaN;
+    r.etaCarnot = (isFinite(hotK) && hotK > 0 && isFinite(coldK)) ? (hotK - coldK) / hotK : NaN;
+    r.etaTE = NaN;
+    if (isFinite(r.etaCarnot) && isFinite(zt) && zt > 0 && coldK > 0 && hotK > coldK) {
+      var root = Math.sqrt(1 + zt);                  /* zt is ZT-bar, dimensionless */
+      var denom = root - coldK / hotK;
+      if (denom > 0) r.etaTE = r.etaCarnot * (root - 1) / denom;
+    }
+
+    r.errors = problems;
+    r.ok = problems.length === 0 && isFinite(vTotal);
+    return r;
+  }
+
+  /* ---- formatting ---------------------------------------------------------- */
+  function pickUnit(mag, units) {          /* largest unit whose factor <= |x| */
+    var chosen = units[0];
+    for (var i = 0; i < units.length; i++) if (mag >= units[i][1]) chosen = units[i];
+    return chosen;
+  }
+  function sig(x, digits) {
+    if (!isFinite(x)) return null;
+    if (x === 0) return '0';
+    var s = x.toPrecision(digits === undefined ? 4 : digits);
+    if (s.indexOf('e') === -1 && s.indexOf('.') !== -1) s = s.replace(/0+$/, '').replace(/\.$/, '');
+    return s;
+  }
+  function fmtScaled(x, units, digits) {
+    if (!isFinite(x)) return '\u2014';                                  /* em dash */
+    if (x === 0) return '0 ' + units[units.length - 2][0];
+    var u = pickUnit(Math.abs(x), units);
+    var v = sig(x / u[1], digits);
+    return v === null ? '\u2014' : v + ' ' + u[0];
+  }
+  var V_UNITS = [['nV', 1e-9], ['\u00B5V', 1e-6], ['mV', 1e-3], ['V', 1], ['kV', 1e3]];
+  var W_UNITS = [['nW', 1e-9], ['\u00B5W', 1e-6], ['mW', 1e-3], ['W', 1], ['kW', 1e3]];
+  var A_UNITS = [['nA', 1e-9], ['\u00B5A', 1e-6], ['mA', 1e-3], ['A', 1]];
+
+  return {
+    K0: K0, SEEBECK_UNIT: SEEBECK_UNIT, VOLT_UNIT: VOLT_UNIT,
+    toKelvin: toKelvin, fromKelvin: fromKelvin, deltaToUnit: deltaToUnit,
+    parseNum: parseNum, model: model, sig: sig,
+    fmtVolts: function (x, d) { return fmtScaled(x, V_UNITS, d); },
+    fmtWatts: function (x, d) { return fmtScaled(x, W_UNITS, d); },
+    fmtAmps:  function (x, d) { return fmtScaled(x, A_UNITS, d); },
+    fmtPercent: function (x, d) {
+      return isFinite(x) ? sig(x * 100, d === undefined ? 3 : d) + ' %' : '\u2014';
+    }
+  };
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+  var C = SeebeckCore;
+  function $(id) { return document.getElementById(id); }
+
+  var DEFAULTS = {
+    mode: 'voltage', seebeck: '41', seebeckUnit: 'uV/K', n: '1',
+    th: '100', tc: '25', unit: 'C', measured: '4.095', measuredUnit: 'mV',
+    rint: '1', rload: '1', zt: '1'
+  };
+  var MODES = { voltage: 'm-voltage', dT: 'm-dT', S: 'm-S' };
+  var T_LABEL = { C: ' \u00B0C', K: ' K', F: ' \u00B0F' };
+  var mode = 'voltage';
+
+  var inp = {
+    seebeck: $('seebeck'), seebeckUnit: $('seebeck-unit'), n: $('couples'),
+    th: $('thot'), tc: $('tcold'), unit: $('tunit'),
+    measured: $('measured'), measuredUnit: $('measured-unit'),
+    rint: $('rint'), rload: $('rload'), zt: $('zt'), preset: $('preset')
+  };
+
+  function inputs() {
+    return {
+      mode: mode,
+      seebeck: inp.seebeck.value, seebeckUnit: inp.seebeckUnit.value,
+      n: inp.n.value, th: inp.th.value, tc: inp.tc.value, unit: inp.unit.value,
+      measured: inp.measured.value, measuredUnit: inp.measuredUnit.value,
+      rint: inp.rint.value, rload: inp.rload.value, zt: inp.zt.value
+    };
+  }
+
+  function setMode(next) {
+    mode = next;
+    Object.keys(MODES).forEach(function (m) {
+      $(MODES[m]).setAttribute('aria-pressed', String(m === next));
+    });
+    $('f-th').classList.toggle('hidden', next === 'dT');
+    $('f-S').classList.toggle('hidden', next === 'S');
+    $('f-vmeas').classList.toggle('hidden', next === 'voltage');
+    inp.th.disabled = (next === 'dT');
+  }
+
+  function row(id, text, show) {
+    var node = $(id);
+    node.textContent = text;
+    var tr = node.closest ? node.closest('.row') : null;
+    if (tr) tr.classList.toggle('hidden', show === false);
+  }
+
+  function polarityText(r) {
+    if (!isFinite(r.vTotal)) return '\u2014';
+    if (r.vTotal === 0) return 'none (0 V)';
+    var hotter = r.dT >= 0 ? 'h' : 'c';
+    var signForHot = (r.dT >= 0 ? r.S : -r.S);
+    var txt = (signForHot > 0 ? '+ ' : '\u2212 ') + 'on the T\u2020' + hotter + ' side';
+    if (r.dT < 0) txt += ' \u2014 gradient reversed vs. labels';
+    return txt;
+  }
+
+  function render() {
+    var r = C.model(inputs());
+    var u = r.unit;
+
+    /* temperature chips + diagram */
+    var thTxt = isFinite(r.ThK) ? C.sig(C.fromKelvin(r.ThK, u), 5) + T_LABEL[u] : 'T\u2020h';
+    var tcTxt = isFinite(r.TcK) ? C.sig(C.fromKelvin(r.TcK, u), 5) + T_LABEL[u] : 'T\u2020c';
+    $('tag-th').textContent = r.mode === 'dT' ? thTxt + '  (implied)' : thTxt;
+    $('tag-tc').textContent = tcTxt;
+    var dtTxt = isFinite(r.dT)
+      ? C.sig(r.dT, 4) + ' K' + (u === 'F' ? ' / ' + C.sig(C.deltaToUnit(r.dT, 'F'), 4) + ' \u00B0F' : '')
+      : '\u0394T';
+    $('g-th').textContent = 'T\u2020h = ' + thTxt;
+    $('g-tc').textContent = 'T\u2020c = ' + tcTxt;
+    $('g-tc2').textContent = 'T\u2020c = ' + tcTxt;
+    $('g-dt').textContent = '\u0394T = ' + dtTxt + (isFinite(r.vTotal) ? '  \u2192  ' + C.fmtVolts(r.vTotal) : '');
+    $('g-a').textContent = 'leg A  \u00D7 ' + (isFinite(r.n) ? r.n : '?');
+    $('g-b').textContent = 'couple N';
+
+    /* headline number depends on what we are solving for */
+    var hero = '\u2014', sub = '';
+    if (r.mode === 'voltage') {
+      hero = C.fmtVolts(r.vTotal, 4);
+      sub = 'Open-circuit voltage of ' + (isFinite(r.n) ? r.n : '?') +
+            ' couple(s) with S = ' + C.sig(r.S * 1e6, 4) + ' \u00B5V/K over \u0394T.';
+    } else if (r.mode === 'dT') {
+      hero = isFinite(r.dT) ? C.sig(C.deltaToUnit(r.dT, u), 4) + T_LABEL[u].trim() : '\u2014';
+      sub = 'Implied gradient. Hot side works out at ' + thTxt +
+            ' (= ' + (isFinite(r.ThK) ? C.sig(r.ThK, 6) + ' K' : '\u2014') + ').';
+    } else {
+      hero = isFinite(r.S) ? C.sig(r.S * 1e6, 4) + ' \u00B5V/K' : '\u2014';
+      sub = 'Seebeck coefficient per couple derived from the measured voltage.';
+    }
+    $('hero').innerHTML = '<span>' + hero.split(' ')[0] + '</span>' +
+      (hero.indexOf(' ') > 0 ? '<span class="unit">' + hero.slice(hero.indexOf(' ') + 1) + '</span>' : '');
+    $('hero-sub').textContent = sub;
+
+    row('o-dt', dtTxt);
+    row('o-one', C.fmtVolts(r.vCouple));
+    $('o-total-lbl').innerHTML = 'Total EMF (' + (isFinite(r.n) ? r.n : 'N') + ' couple' + (r.n === 1 ? '' : 's') + ')';
+    row('o-total', C.fmtVolts(r.vTotal));
+    row('o-pol', polarityText(r));
+    row('o-s', isFinite(r.S) ? C.sig(r.S * 1e6, 4) + ' \u00B5V/K' : '\u2014');
+
+    var haveCircuit = isFinite(r.rint) && isFinite(r.rload) && r.rint + r.rload > 0 && isFinite(r.vTotal);
+    row('o-i', haveCircuit ? C.fmtAmps(r.current) : '\u2014', haveCircuit);
+    row('o-p', haveCircuit ? C.fmtWatts(r.pLoad) : '\u2014', haveCircuit);
+    row('o-pm', C.fmtWatts(r.pMax), isFinite(r.pMax));
+    row('o-car', C.fmtPercent(r.etaCarnot), isFinite(r.etaCarnot) && r.etaCarnot > 0);
+    row('o-eff', C.fmtPercent(r.etaTE, 3), isFinite(r.etaTE));
+
+    var msg = $('msg');
+    msg.className = 'sub';
+    if (r.errors.length) {
+      msg.className = 'sub err';
+      msg.textContent = r.errors.join(' \u00B7 ');
+    } else if (isFinite(r.dT) && r.dT === 0) {
+      msg.textContent = 'Both sides are the same temperature, so there is nothing for the Seebeck effect to act on.';
+    } else if (isFinite(r.vTotal) && r.vTotal < 0) {
+      msg.textContent = 'Negative EMF: the polarity at the labelled hot terminal is inverted \u2014 swap the leads to read it as positive.';
+    } else if (r.mode === 'voltage' && isFinite(r.pMax) && r.pMax > 0) {
+      msg.textContent = 'Matched load delivers ' + C.fmtWatts(r.pMax) + '; efficiency needs a real ZT and a positive gradient.';
+    } else {
+      msg.textContent = '';
+    }
+
+    syncPreset();
+    writeHash(r);
+    return r;
+  }
+  /* ---- preset select reflects the coefficient field ---- */
+  function syncPreset() {
+    var val = C.parseNum(inp.seebeck.value);
+    var match = '';
+    if (isFinite(val) && inp.seebeckUnit.value === 'uV/K') {
+      for (var i = 0; i < inp.preset.options.length; i++) {
+        var o = inp.preset.options[i];
+        if (o.value !== '' && C.parseNum(o.value) === val) { match = o.value; break; }
+      }
+    }
+    inp.preset.value = match;
+  }
+
+  /* ---- URL fragment state -------------------------------------------- */
+  var HASH_KEYS = {
+    mode: 'm', seebeck: 's', seebeckUnit: 'su', n: 'n', th: 'th', tc: 'tc',
+    unit: 'tu', measured: 'v', measuredUnit: 'vu', rint: 'ri', rload: 'rl', zt: 'zt'
+  };
+  function hashString() {
+    var cur = inputs(), parts = [];
+    Object.keys(HASH_KEYS).forEach(function (key) {
+      if (String(cur[key]) !== String(DEFAULTS[key])) {
+        parts.push(HASH_KEYS[key] + '=' + encodeURIComponent(cur[key]));
+      }
+    });
+    return parts.join('&');
+  }
+  function writeHash() {
+    var h = hashString();
+    try {
+      history.replaceState(null, '', h ? '#' + h : location.pathname + location.search);
+    } catch (e) { /* file:// or private mode: the link is still built on demand */ }
+  }
+  function readHash() {
+    var raw = (location.hash || '').replace(/^#/, '');
+    if (!raw) return;
+    var got = {};
+    raw.split('&').forEach(function (pair) {
+      var kv = pair.split('=');
+      if (kv.length === 2) got[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+    });
+    var reverse = {};
+    Object.keys(HASH_KEYS).forEach(function (k) { reverse[HASH_KEYS[k]] = k; });
+    Object.keys(reverse).forEach(function (code) {
+      var key = reverse[code];
+      if (!(key in got)) return;
+      var value = got[key];
+      if (key === 'mode') { if (MODES[value]) mode = value; return; }
+      if (key === 'seebeckUnit') { if (C.SEEBECK_UNIT[value]) inp.seebeckUnit.value = value; return; }
+      if (key === 'measuredUnit') { if (C.VOLT_UNIT[value]) inp.measuredUnit.value = value; return; }
+      if (key === 'unit') { if (['C', 'K', 'F'].indexOf(value) >= 0) inp.unit.value = value; return; }
+      if (isFinite(C.parseNum(value))) inp[key].value = value;
+    });
+  }
+
+  /* ---- human-readable summary ---------------------------------------- */
+  function summary(r) {
+    var u = r.unit, lines = [];
+    lines.push('Seebeck calculator');
+    lines.push('Mode                : ' + r.mode);
+    lines.push('Seebeck coefficient : ' + (isFinite(r.S) ? C.sig(r.S * 1e6, 4) + ' uV/K' : 'n/a'));
+    lines.push('Couples in series   : ' + (isFinite(r.n) ? r.n : 'n/a'));
+    lines.push('Hot side            : ' + (isFinite(r.ThK) ? C.sig(C.fromKelvin(r.ThK, u), 5) + '  (' + C.sig(r.ThK, 6) + ' K)' : 'n/a'));
+    lines.push('Cold / reference    : ' + (isFinite(r.TcK) ? C.sig(C.fromKelvin(r.TcK, u), 5) + '  (' + C.sig(r.TcK, 6) + ' K)' : 'n/a'));
+    lines.push('Delta T             : ' + (isFinite(r.dT) ? C.sig(r.dT, 4) + ' K' : 'n/a'));
+    lines.push('Voltage per couple  : ' + C.fmtVolts(r.vCouple));
+    lines.push('Total EMF (open ckt): ' + C.fmtVolts(r.vTotal));
+    lines.push('Polarity            : ' + polarityText(r));
+    if (isFinite(r.rint)) lines.push('Internal resistance : ' + C.sig(r.rint, 4) + ' ohm');
+    if (isFinite(r.current)) lines.push('Current into load   : ' + C.fmtAmps(r.current));
+    if (isFinite(r.pLoad)) lines.push('Power into load     : ' + C.fmtWatts(r.pLoad));
+    if (isFinite(r.pMax)) lines.push('Max power (matched) : ' + C.fmtWatts(r.pMax));
+    if (isFinite(r.etaCarnot) && r.etaCarnot > 0) lines.push('Carnot limit          : ' + C.fmtPercent(r.etaCarnot));
+    if (isFinite(r.etaTE)) lines.push('TE efficiency ZT=' + C.sig(r.zt, 3) + ' : ' + C.fmtPercent(r.etaTE));
+    if (r.errors.length) lines.push('Warnings: ' + r.errors.join(' | '));
+    return lines.join('\n');
+  }
+  /* ---- clipboard ------------------------------------------------------- */
+  var statusTimer = null;
+  function flashStatus(text) {
+    $('status').textContent = text;
+    if (statusTimer) clearTimeout(statusTimer);
+    statusTimer = setTimeout(function () { $('status').textContent = ''; }, 2400);
+  }
+  function copyText(text, label) {
+    function legacy() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      flashStatus(ok ? label + ' copied' : 'Copy blocked \u2014 select it manually');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { flashStatus(label + ' copied'); },
+        function () { legacy(); }
+      );
+    } else legacy();
+  }
+  function shareUrl() {
+    var base = location.href.split('#')[0];
+    var h = hashString();
+    return h ? base + '#' + h : base;
+  }
+
+  /* ---- wiring ---------------------------------------------------------- */
+  ['seebeck', 'n', 'th', 'tc', 'measured', 'rint', 'rload', 'zt'].forEach(function (k) {
+    inp[k].addEventListener('input', render);
+  });
+  ['seebeckUnit', 'unit', 'measuredUnit'].forEach(function (k) {
+    inp[k].addEventListener('change', render);
+  });
+  inp.preset.addEventListener('change', function () {
+    if (inp.preset.value !== '') {
+      inp.seebeckUnit.value = 'uV/K';
+      inp.seebeck.value = inp.preset.value;
+    }
+    render();
+  });
+  Object.keys(MODES).forEach(function (m) {
+    $(MODES[m]).addEventListener('click', function () { setMode(m); render(); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#ref-table tbody tr'), function (tr) {
+    tr.addEventListener('click', function () {
+      inp.seebeckUnit.value = 'uV/K';
+      inp.seebeck.value = tr.getAttribute('data-s');
+      render();
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+    });
+  });
+  $('copy').addEventListener('click', function () { copyText(summary(C.model(inputs())), 'Results'); });
+  $('link').addEventListener('click', function () { copyText(shareUrl(), 'Link'); });
+  $('reset').addEventListener('click', function () {
+    Object.keys(DEFAULTS).forEach(function (k) {
+      if (k !== 'mode' && inp[k]) inp[k].value = DEFAULTS[k];
+    });
+    $('adv').open = false;
+    setMode(DEFAULTS.mode);
+    render();
+    flashStatus('Reset to defaults');
+  });
+
+  readHash();
+  setMode(mode);
+  render();
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
